@@ -166,6 +166,63 @@ bool tuh_xinput_set_rumble(uint8_t dev_addr, uint8_t instance, uint8_t lValue, u
     return true;
 }
 
+bool tuh_xinput_init_chatpad(uint8_t dev_addr, uint8_t instance, bool block)
+{
+    TU_LOG2("XINPUT::tuh_xinput_init_chatpad\n");
+    xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
+    uint8_t txbuf[sizeof(xboxone_chatpad_init3)];
+    uint16_t len;
+    switch (xid_itf->type)
+    {
+    case XBOXONE:
+        memcpy(txbuf, xboxone_chatpad_init3, sizeof(xboxone_chatpad_init3));
+        len = sizeof(xboxone_chatpad_init3);
+        break;
+    default:
+        return true;
+    }
+    bool ret = tuh_xinput_send_report(dev_addr, instance, txbuf, len);
+    if (block && ret)
+    {
+        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+    }
+
+    uint8_t txbuf2[sizeof(xboxone_chatpad_init4)];
+    len;
+    switch (xid_itf->type)
+    {
+    case XBOXONE:
+        memcpy(txbuf2, xboxone_chatpad_init4, sizeof(xboxone_chatpad_init4));
+        len = sizeof(xboxone_chatpad_init4);
+        break;
+    default:
+        return true;
+    }
+    ret = tuh_xinput_send_report(dev_addr, instance, txbuf2, len);
+    if (block && ret)
+    {
+        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+    }
+
+    uint8_t txbuf3[sizeof(xboxone_chatpad_init5)];
+    len;
+    switch (xid_itf->type)
+    {
+    case XBOXONE:
+        memcpy(txbuf3, xboxone_chatpad_init5, sizeof(xboxone_chatpad_init5));
+        len = sizeof(xboxone_chatpad_init5);
+        break;
+    default:
+        return true;
+    }
+    ret = tuh_xinput_send_report(dev_addr, instance, txbuf3, len);
+    if (block && ret)
+    {
+        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+    }
+    return ret;
+}
+
 //--------------------------------------------------------------------+
 // USBH API
 //--------------------------------------------------------------------+
@@ -280,6 +337,12 @@ bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
     {
         uint16_t PID, VID;
         tuh_vid_pid_get(dev_addr, &VID, &PID);
+
+        //Init chatpad?
+        // tuh_xinput_send_report(dev_addr, instance, xboxone_chatpad_init1, sizeof(xboxone_chatpad_init1));
+        // wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+        // tuh_xinput_send_report(dev_addr, instance, xboxone_chatpad_init2, sizeof(xboxone_chatpad_init2));
+        // wait_for_tx_complete(dev_addr, xid_itf->ep_out);
 
         //Init packet for XBONE S/Elite controllers (return from bluetooth mode)
         if (VID == 0x045e && (PID == 0x02ea || PID == 0x0b00 || PID == 0x0b12))
