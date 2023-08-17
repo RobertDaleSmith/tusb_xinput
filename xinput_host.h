@@ -55,7 +55,8 @@ typedef enum
     XBOXONE,
     XBOX360_WIRELESS,
     XBOX360_WIRED,
-    XBOXOG
+    XBOXOG,
+    XINPUT_8BITDO_IDLE
 } xinput_type_t;
 
 typedef struct

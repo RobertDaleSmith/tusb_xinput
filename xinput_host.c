@@ -198,6 +198,18 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
              desc_itf->bInterfaceSubClass == 0x42) //XboxOG bInterfaceSubClass
         type = XBOXOG;
 
+    if (desc_itf->bInterfaceClass == TUSB_CLASS_HID &&
+            desc_itf->bInterfaceSubClass == 0 && //Supports boot protocol
+            desc_itf->bInterfaceProtocol == HID_ITF_PROTOCOL_NONE &&
+            VID == 0x2dc8)
+        type = XINPUT_8BITDO_IDLE;
+
+    // Seems to get 8BitDo Wireless Adapter 2 working when it is preset to XInput mode.
+    if (desc_itf->bInterfaceClass == 255 && VID == 0x2dc8 && PID == 0x3106){ //|| XINPUT_8BITDO_IDLE) {
+        printf("8BitDo sleepy..\n");
+        sleep_ms(1000);
+    }
+
     TU_LOG2("XINPUT::type: %d\n", type);
 
     if (type == XINPUT_UNKNOWN)
