@@ -75,35 +75,19 @@ typedef struct
     uint8_t epout_buf[CFG_TUH_XINPUT_EPOUT_BUFSIZE];
 } xinputh_interface_t;
 
-void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len);
-TU_ATTR_WEAK void tuh_xinput_report_sent_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len);
-TU_ATTR_WEAK void tuh_xinput_umount_cb(uint8_t dev_addr, uint8_t instance);
-TU_ATTR_WEAK void tuh_xinput_mount_cb(uint8_t dev_addr, uint8_t instance, const xinputh_interface_t *xinput_itf);
-bool tuh_xinput_receive_report(uint8_t dev_addr, uint8_t instance);
-bool tuh_xinput_send_report(uint8_t dev_addr, uint8_t instance, const uint8_t *txbuf, uint16_t len);
-bool tuh_xinput_set_led(uint8_t dev_addr, uint8_t instance, uint8_t quadrant, bool block);
-bool tuh_xinput_set_rumble(uint8_t dev_addr, uint8_t instance, uint8_t lValue, uint8_t rValue, bool block);
-
-//--------------------------------------------------------------------+
-// Internal Class Driver API
-//--------------------------------------------------------------------+
-void xinputh_init       (void);
-bool xinputh_open       (uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const *desc_itf, uint16_t max_len);
-bool xinputh_set_config (uint8_t dev_addr, uint8_t itf_num);
-bool xinputh_xfer_cb    (uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes);
-void xinputh_close      (uint8_t dev_addr);
-
 //Wired 360 commands
 static const uint8_t xbox360_wired_rumble[] = {0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static const uint8_t xbox360_wired_led[] = {0x01, 0x03, 0x00};
 
 //Xbone one
 static const uint8_t xboxone_start_input[] = {0x05, 0x20, 0x03, 0x01, 0x00};
-static const uint8_t xboxone_s_init[] = {0x05, 0x20, 0x00, 0x0f, 0x06};
+static const uint8_t xboxone_s_init[] = {0x05, 0x20, 0x02, 0x0f, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0x53, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 static const uint8_t xboxone_pdp_init1[] = {0x0a, 0x20, 0x00, 0x03, 0x00, 0x01, 0x14};
 static const uint8_t xboxone_pdp_init2[] = {0x06, 0x30};
 static const uint8_t xboxone_pdp_init3[] = {0x06, 0x20, 0x00, 0x02, 0x01, 0x00};
-static const uint8_t xboxone_rumble[] = {0x09, 0x00, 0x00, 0x09, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEB};
+static const uint8_t xboxone_rumble[] = {0x09, 0x00, 0x03, 0x09, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xEB};
+static const uint8_t xboxone_powera_init1[] = {0x09, 0x00, 0x00, 0x09, 0x00, 0x0F, 0x00, 0x00, 0x1D, 0x1D, 0xFF, 0x00, 0x00};
+static const uint8_t xboxone_powera_init2[] = {0x09, 0x00, 0x00, 0x09, 0x00, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 //Wireless 360 commands
 static const uint8_t xbox360w_led[] = {0x00, 0x00, 0x08, 0x40};
@@ -120,6 +104,32 @@ static const uint8_t xbox360w_chatpad_keepalive2[] = {0x00, 0x00, 0x0C, 0x1E};
 
 //Original Xbox
 static const uint8_t xboxog_rumble[] = {0x00, 0x06, 0x00, 0x00, 0x00, 0x00};
+
+//--------------------------------------------------------------------+
+// Application API (Single Interface)
+//--------------------------------------------------------------------+
+
+bool tuh_xinput_receive_report(uint8_t dev_addr, uint8_t instance);
+bool tuh_xinput_send_report(uint8_t dev_addr, uint8_t instance, const uint8_t *txbuf, uint16_t len);
+bool tuh_xinput_set_led(uint8_t dev_addr, uint8_t instance, uint8_t quadrant, bool block);
+bool tuh_xinput_set_rumble(uint8_t dev_addr, uint8_t instance, uint8_t lValue, uint8_t rValue, bool block);
+
+//--------------------------------------------------------------------+
+// Internal Class Driver API
+//--------------------------------------------------------------------+
+void xinputh_init       (void);
+bool xinputh_open       (uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const *desc_itf, uint16_t max_len);
+bool xinputh_set_config (uint8_t dev_addr, uint8_t itf_num);
+bool xinputh_xfer_cb    (uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes);
+void xinputh_close      (uint8_t dev_addr);
+
+//--------------------------------------------------------------------+
+// Callbacks (Weak is optional)
+//--------------------------------------------------------------------+
+TU_ATTR_WEAK void tuh_xinput_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len);
+TU_ATTR_WEAK void tuh_xinput_report_sent_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* report, uint16_t len);
+TU_ATTR_WEAK void tuh_xinput_umount_cb(uint8_t dev_addr, uint8_t instance);
+TU_ATTR_WEAK void tuh_xinput_mount_cb(uint8_t dev_addr, uint8_t instance, const xinputh_interface_t *xinput_itf);
 
 #ifdef __cplusplus
 }
