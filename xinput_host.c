@@ -180,7 +180,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
 
     uint16_t PID, VID;
     tuh_vid_pid_get(dev_addr, &VID, &PID);
-    TU_LOG2("XINPUT:: dev: %d, instance: %d, endpoints:%d, class: %d, subclass: %d, protocol: %d, interface: %d, vid: %d, pid: %d \n\n", dev_addr, desc_itf->bInterfaceNumber, desc_itf->bNumEndpoints, desc_itf->bInterfaceClass, desc_itf->bInterfaceSubClass, desc_itf->bInterfaceProtocol, desc_itf->iInterface, VID, PID);
+    TU_LOG2("XINPUT:: dev: %d, instance: %d, endpoints:%d, class: %x, subclass: %x, protocol: %x, interface: %x, vid: %x, pid: %x \n\n", dev_addr, desc_itf->bInterfaceNumber, desc_itf->bNumEndpoints, desc_itf->bInterfaceClass, desc_itf->bInterfaceSubClass, desc_itf->bInterfaceProtocol, desc_itf->iInterface, VID, PID);
 
     xinput_type_t type = XINPUT_UNKNOWN;
     if (desc_itf->bNumEndpoints < 2)
@@ -189,7 +189,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
              desc_itf->bInterfaceProtocol == 0x81)   //Xbox360 wireless bInterfaceProtocol
         type = XBOX360_WIRELESS;
     else if (desc_itf->bInterfaceSubClass == 0x5D && //Xbox360 wired bInterfaceSubClass
-             desc_itf->bInterfaceProtocol == 0x01)   //Xbox360 wired bInterfaceProtocol
+            (desc_itf->bInterfaceProtocol == 0x01 || desc_itf->bInterfaceProtocol == 0x02 || desc_itf->bInterfaceProtocol == 0x03)) //Xbox360 wired bInterfaceProtocol
         type = XBOX360_WIRED;
     else if (desc_itf->bInterfaceSubClass == 0x47 && //Xbone and SX bInterfaceSubClass
              desc_itf->bInterfaceProtocol == 0xD0)   //Xbone and SX bInterfaceProtocol
@@ -197,6 +197,9 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
     else if (desc_itf->bInterfaceClass == 0x58 &&  //XboxOG bInterfaceClass
              desc_itf->bInterfaceSubClass == 0x42) //XboxOG bInterfaceSubClass
         type = XBOXOG;
+
+    // if (desc_itf->bInterfaceSubClass == 0xFD && desc_itf->bInterfaceProtocol == 0x13)
+    //     type = XBOX360_WIRED;
 
     TU_LOG2("XINPUT::type: %d\n", type);
 
