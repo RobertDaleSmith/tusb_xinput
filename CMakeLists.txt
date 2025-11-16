@@ -8,4 +8,4 @@ target_sources(xinput_host INTERFACE
 target_include_directories(xinput_host INTERFACE
  ${CMAKE_CURRENT_LIST_DIR}
 )
-target_link_libraries(xinput_host INTERFACE tinyusb)
+target_link_libraries(xinput_host INTERFACE tinyusb_host tinyusb_board)
