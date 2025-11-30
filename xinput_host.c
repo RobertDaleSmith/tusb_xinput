@@ -247,6 +247,67 @@ bool tuh_xinput_set_rumble(uint8_t dev_addr, uint8_t instance, uint8_t lValue, u
     return true;
 }
 
+bool tuh_xinput_init_chatpad(uint8_t dev_addr, uint8_t instance, bool enable)
+{
+    xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
+
+    // Chatpad only supported on Xbox 360 Wireless
+    if (xid_itf->type != XBOX360_WIRELESS)
+    {
+        return false;
+    }
+
+    xid_itf->chatpad_enabled = enable;
+
+    if (!enable)
+    {
+        xid_itf->chatpad_inited = false;
+        return true;
+    }
+
+    TU_LOG1("XINPUT: Chatpad init\n");
+
+    // Send chatpad init command
+    bool ret = tuh_xinput_send_report(dev_addr, instance, xbox360w_chatpad_init, sizeof(xbox360w_chatpad_init));
+    if (ret)
+    {
+        wait_for_tx_complete(dev_addr, xid_itf->ep_out);
+        xid_itf->chatpad_inited = true;
+        xid_itf->chatpad_stage = 1;  // Start with keepalive1
+        xid_itf->chatpad_last_time = 0;
+    }
+    return ret;
+}
+
+bool tuh_xinput_chatpad_keepalive(uint8_t dev_addr, uint8_t instance)
+{
+    xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
+
+    if (!xid_itf->chatpad_enabled || !xid_itf->chatpad_inited)
+    {
+        return false;
+    }
+
+    // Alternate between keepalive1 and keepalive2
+    const uint8_t *cmd;
+    uint16_t len;
+
+    if (xid_itf->chatpad_stage == 1)
+    {
+        cmd = xbox360w_chatpad_keepalive1;
+        len = sizeof(xbox360w_chatpad_keepalive1);
+        xid_itf->chatpad_stage = 2;
+    }
+    else
+    {
+        cmd = xbox360w_chatpad_keepalive2;
+        len = sizeof(xbox360w_chatpad_keepalive2);
+        xid_itf->chatpad_stage = 1;
+    }
+
+    return tuh_xinput_send_report(dev_addr, instance, cmd, len);
+}
+
 //--------------------------------------------------------------------+
 // USBH API
 //--------------------------------------------------------------------+
@@ -436,6 +497,7 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
                 {
                     TU_LOG2("XINPUT: WIRELESS CONTROLLER DISCONNECTED\n");
                     xid_itf->connected = false;
+                    xid_itf->chatpad_inited = false;
                 }
             }
 
@@ -473,6 +535,37 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
                 pad->sThumbRY = rdata[17] << 8 | rdata[16];
 
                 xid_itf->new_pad_data = true;
+
+                // Chatpad data (if enabled and report is long enough)
+                if (xid_itf->chatpad_enabled && xferred_bytes >= 27)
+                {
+                    uint8_t chatpad_status = rdata[24];
+
+                    if (chatpad_status == 0x00)
+                    {
+                        // Chatpad key data: [25]=modifier, [26]=key1, [27]=key2
+                        if (rdata[25] != xid_itf->chatpad_data[0] ||
+                            rdata[26] != xid_itf->chatpad_data[1] ||
+                            rdata[27] != xid_itf->chatpad_data[2])
+                        {
+                            xid_itf->chatpad_data[0] = rdata[25];  // modifier
+                            xid_itf->chatpad_data[1] = rdata[26];  // key1
+                            xid_itf->chatpad_data[2] = rdata[27];  // key2
+                            xid_itf->new_chatpad_data = true;
+                            TU_LOG2("XINPUT: Chatpad data: mod=%02x key1=%02x key2=%02x\n",
+                                    rdata[25], rdata[26], rdata[27]);
+                        }
+                    }
+                    else if (chatpad_status == 0xF0 && rdata[25] == 0x03)
+                    {
+                        // Chatpad connected notification - reinit if needed
+                        if (!xid_itf->chatpad_inited)
+                        {
+                            TU_LOG1("XINPUT: Chatpad connected, initializing\n");
+                            tuh_xinput_init_chatpad(dev_addr, instance, true);
+                        }
+                    }
+                }
             }
         }
         else if (xid_itf->type == XBOXONE)

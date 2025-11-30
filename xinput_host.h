@@ -80,6 +80,14 @@ typedef struct
 
     xfer_result_t last_xfer_result;
     uint32_t last_xferred_bytes;
+
+    // Chatpad state (Xbox 360 Wireless)
+    uint8_t chatpad_enabled;
+    uint8_t chatpad_inited;
+    uint8_t chatpad_stage;       // 0=idle, 1=keepalive1, 2=keepalive2
+    uint32_t chatpad_last_time;  // Last keepalive time (ms)
+    uint8_t chatpad_data[3];     // [0]=modifier, [1]=key1, [2]=key2
+    uint8_t new_chatpad_data;
 } xinputh_interface_t;
 
 extern usbh_class_driver_t const usbh_xinput_driver;
@@ -183,6 +191,34 @@ bool tuh_xinput_set_led(uint8_t dev_addr, uint8_t instance, uint8_t quadrant, bo
  * @return True if rumble values are set successfully, false otherwise.
  */
 bool tuh_xinput_set_rumble(uint8_t dev_addr, uint8_t instance, uint8_t lValue, uint8_t rValue, bool block);
+
+/**
+ * @brief Initialize chatpad on an Xbox 360 Wireless controller.
+ *
+ * This function sends the initialization sequence to enable the chatpad.
+ * After initialization, chatpad_keepalive must be called periodically.
+ *
+ * @param dev_addr Device address of the XInput device.
+ * @param instance Instance of the XInput device.
+ * @param enable True to enable chatpad, false to disable.
+ * @return True if initialization was sent successfully, false otherwise.
+ */
+bool tuh_xinput_init_chatpad(uint8_t dev_addr, uint8_t instance, bool enable);
+
+/**
+ * @brief Send chatpad keepalive to maintain chatpad connection.
+ *
+ * Must be called periodically (every ~1 second) after chatpad init.
+ * Alternates between keepalive1 and keepalive2 messages.
+ *
+ * @param dev_addr Device address of the XInput device.
+ * @param instance Instance of the XInput device.
+ * @return True if keepalive was sent successfully, false otherwise.
+ */
+bool tuh_xinput_chatpad_keepalive(uint8_t dev_addr, uint8_t instance);
+
+// Chatpad keepalive interval in milliseconds
+#define XINPUT_CHATPAD_KEEPALIVE_MS 1000
 
 #ifdef __cplusplus
 }
