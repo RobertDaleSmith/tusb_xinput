@@ -8,6 +8,10 @@
 #include "host/usbh.h"
 #include "host/usbh_pvt.h"
 #include "xinput_host.h"
+#include <stdio.h>
+
+// Xbox One auth passthrough support
+#include "usb/usbh/xbone_auth/xbone_auth.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-const-variable"
@@ -26,6 +30,7 @@ static const uint8_t xbox360_wired_led[] = {0x01, 0x03, 0x00};
 #define GIP_CMD_RUMBLE 0x09
 #define GIP_CMD_LED 0x0a
 #define GIP_CMD_FIRMWARE 0x0c
+#define GIP_CMD_FINAL_AUTH 0x1E
 #define GIP_CMD_INPUT 0x20
 #define GIP_SEQ0 0x00
 #define GIP_OPT_ACK 0x10
@@ -314,6 +319,10 @@ bool tuh_xinput_chatpad_keepalive(uint8_t dev_addr, uint8_t instance)
 bool xinputh_init(void)
 {
     tu_memclr(_xinputh_dev, sizeof(_xinputh_dev));
+
+    // Initialize Xbox One auth passthrough
+    xbone_auth_init();
+
     return true;
 }
 
@@ -618,6 +627,13 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
             else if (rdata[0] == GIP_CMD_ANNOUNCE)
             {
                 xboxone_init(xid_itf, dev_addr, instance);
+            }
+            else if (rdata[0] == GIP_CMD_AUTHENTICATE || rdata[0] == GIP_CMD_FINAL_AUTH)
+            {
+                // Auth response from Xbox One controller - forward to auth passthrough
+                printf("[xinput_host] Auth response from controller: cmd=0x%02x len=%lu\n",
+                       rdata[0], (unsigned long)xferred_bytes);
+                xbone_auth_report_received(dev_addr, instance, rdata, xferred_bytes);
             }
         }
         else if (xid_itf->type == XBOXOG)
