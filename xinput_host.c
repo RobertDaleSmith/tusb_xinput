@@ -166,13 +166,21 @@ bool tuh_xinput_send_report(uint8_t dev_addr, uint8_t instance, const uint8_t *t
 {
     xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
 
-    TU_ASSERT(len <= xid_itf->epout_size);
-    TU_VERIFY(usbh_edpt_claim(dev_addr, xid_itf->ep_out));
+    if (len > xid_itf->epout_size) {
+        printf("[xinput_host] send_report: len %u > epout_size %u\n", len, xid_itf->epout_size);
+        return false;
+    }
+
+    if (!usbh_edpt_claim(dev_addr, xid_itf->ep_out)) {
+        printf("[xinput_host] send_report: failed to claim endpoint (busy)\n");
+        return false;
+    }
 
     memcpy(xid_itf->epout_buf, txbuf, len);
 
     if ( !usbh_edpt_xfer(dev_addr, xid_itf->ep_out, xid_itf->epout_buf, len))
     {
+        printf("[xinput_host] send_report: xfer failed\n");
         usbh_edpt_release(dev_addr, xid_itf->ep_out);
         return false;
     }
