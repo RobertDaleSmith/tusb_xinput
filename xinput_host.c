@@ -525,7 +525,9 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
 
     // Log all endpoints for interfaces we don't fully handle (like headset interface 1)
     // Also try opening interface 1's IN endpoints to see if chatpad data comes through there
-    if (desc_itf->bInterfaceNumber == 1 && desc_itf->bNumEndpoints > 0) {
+    // Only do this for vendor-specific class (0xFF) - skip BT dongles (class 0xE0)
+    if (desc_itf->bInterfaceNumber == 1 && desc_itf->bNumEndpoints > 0 &&
+        desc_itf->bInterfaceClass == 0xFF) {
         printf("[XINPUT] Interface 1 (headset/expansion) endpoints:\n");
         uint8_t const *p_desc = (uint8_t const *)desc_itf;
         int pos = 0;
