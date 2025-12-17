@@ -523,11 +523,16 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
 
     xinput_type_t type = XINPUT_UNKNOWN;
 
+    // Get device state to check if we've already claimed an Xbox controller interface
+    xinputh_device_t *xinput_dev = get_dev(dev_addr);
+
     // Log all endpoints for interfaces we don't fully handle (like headset interface 1)
     // Also try opening interface 1's IN endpoints to see if chatpad data comes through there
-    // Only do this for vendor-specific class (0xFF) - skip BT dongles (class 0xE0)
+    // Only do this if:
+    // - We already claimed interface 0 as an Xbox controller (inst_count > 0)
+    // - Interface class is vendor-specific (0xFF)
     if (desc_itf->bInterfaceNumber == 1 && desc_itf->bNumEndpoints > 0 &&
-        desc_itf->bInterfaceClass == 0xFF) {
+        desc_itf->bInterfaceClass == 0xFF && xinput_dev && xinput_dev->inst_count > 0) {
         printf("[XINPUT] Interface 1 (headset/expansion) endpoints:\n");
         uint8_t const *p_desc = (uint8_t const *)desc_itf;
         int pos = 0;
@@ -625,7 +630,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
 
     printf("[XINPUT] Opening type=%d dev_addr=%d itf=%d\n", type, dev_addr, desc_itf->bInterfaceNumber);
 
-    xinputh_device_t *xinput_dev = get_dev(dev_addr);
+    // xinput_dev was already retrieved earlier in function
     if (!xinput_dev) {
         printf("[XINPUT] ERROR: get_dev returned NULL\n");
         return false;
