@@ -526,6 +526,11 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
     // Get device state to check if we've already claimed an Xbox controller interface
     xinputh_device_t *xinput_dev = get_dev(dev_addr);
 
+    // TODO: Chatpad support disabled - was causing controller disconnect issues
+    // The experimental code below was opening Interface 1 endpoints and queueing
+    // receives which interfered with normal controller operation.
+    // Revisit when we have proper chatpad hardware to test with.
+#if 0  // CHATPAD_EXPERIMENTAL_INTERFACE1
     // Log all endpoints for interfaces we don't fully handle (like headset interface 1)
     // Also try opening interface 1's IN endpoints to see if chatpad data comes through there
     // Only do this if:
@@ -559,7 +564,11 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
             p_desc = tu_desc_next(p_desc);
         }
     }
+#endif
 
+    // TODO: Wired chatpad support disabled - was causing controller issues
+    // Revisit when we have proper chatpad hardware to test with.
+#if 0  // CHATPAD_WIRED_INTERFACE2
     // Check for wired chatpad interface (Interface 2, SubClass 0x5D, Protocol 0x02)
     if (desc_itf->bInterfaceSubClass == 0x5D && desc_itf->bInterfaceProtocol == 0x02 &&
         desc_itf->bNumEndpoints == 1)
@@ -606,6 +615,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
         }
         return false;  // No wired gamepad found to attach to
     }
+#endif
 
     if (desc_itf->bNumEndpoints < 2)
         type = XINPUT_UNKNOWN;
@@ -686,6 +696,8 @@ bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
     printf("[XINPUT] set_config dev_addr=%d itf_num=%d\n", dev_addr, itf_num);
     uint8_t instance = get_instance_id_by_itfnum(dev_addr, itf_num);
 
+    // TODO: Chatpad set_config handling disabled - was causing controller issues
+#if 0  // CHATPAD_SET_CONFIG
     // Check if this is a chatpad interface (attached to an existing gamepad instance)
     if (instance == 0xff) {
         // Look for a gamepad instance that has this as its chatpad interface
@@ -711,6 +723,13 @@ bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
         }
         printf("[XINPUT] set_config: no instance found for itf_num=%d (not a chatpad either)\n", itf_num);
         return false;
+    }
+#endif
+
+    // If no gamepad instance found for this interface, just complete config
+    if (instance == 0xff) {
+        usbh_driver_set_config_complete(dev_addr, itf_num);
+        return true;
     }
 
     xinputh_interface_t *xid_itf = get_instance(dev_addr, instance);
@@ -747,12 +766,6 @@ bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
 
 bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, uint32_t xferred_bytes)
 {
-    // Debug: log ALL IN transfers on any endpoint to find chatpad data
-    if (tu_edpt_dir(ep_addr) == TUSB_DIR_IN && ep_addr != 0x81) {
-        printf("[XFER] ep=0x%02X result=%d bytes=%lu\n",
-               ep_addr, result, (unsigned long)xferred_bytes);
-    }
-
     uint8_t const dir = tu_edpt_dir(ep_addr);
     uint8_t const instance = get_instance_id_by_epaddr(dev_addr, ep_addr);
     if (instance == 0xff) {
@@ -788,6 +801,8 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
     {
         TU_LOG2("Get Report callback (%u, %u, %u bytes)\r\n", dev_addr, instance, xferred_bytes);
 
+        // TODO: Wired chatpad data handling disabled
+#if 0  // CHATPAD_WIRED_DATA
         // Check if this is from wired chatpad endpoint
         if (ep_addr == xid_itf->chatpad_ep_in)
         {
@@ -827,6 +842,7 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
             }
             return true;
         }
+#endif
 
         if (xid_itf->type == XBOX360_WIRED)
         {
