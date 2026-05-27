@@ -51,6 +51,16 @@ typedef struct xinput_gamepad
     int16_t sThumbLY;
     int16_t sThumbRX;
     int16_t sThumbRY;
+    // Per-button analog pressure (0..255). Populated only by XBOXOG (the
+    // original Xbox Duke / S-controller, whose face + shoulder buttons are
+    // analog); stays zero for XBOX360 / XBOXONE — on those generations only
+    // the triggers are analog and the face/shoulder buttons are pure digital.
+    uint8_t pressure_a;       // OG A
+    uint8_t pressure_b;       // OG B
+    uint8_t pressure_x;       // OG X
+    uint8_t pressure_y;       // OG Y
+    uint8_t pressure_black;   // OG Black (right shoulder on Duke)
+    uint8_t pressure_white;   // OG White (left shoulder on Duke)
 } xinput_gamepad_t;
 
 typedef enum

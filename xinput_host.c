@@ -1138,6 +1138,18 @@ bool xinputh_xfer_cb(uint8_t dev_addr, uint8_t ep_addr, xfer_result_t result, ui
                 if (rdata[8] > 0x20) pad->wButtons |= XINPUT_GAMEPAD_RIGHT_SHOULDER;
                 if (rdata[9] > 0x20) pad->wButtons |= XINPUT_GAMEPAD_LEFT_SHOULDER;
 
+                // Preserve the OG controller's per-button analog pressure
+                // alongside the threshold-quantized digital bits above. The
+                // 0x20 threshold above is kept for compatibility with hosts
+                // that only consume wButtons; hosts that want the raw 0..255
+                // value read these fields instead.
+                pad->pressure_a     = rdata[4];
+                pad->pressure_b     = rdata[5];
+                pad->pressure_x     = rdata[6];
+                pad->pressure_y     = rdata[7];
+                pad->pressure_black = rdata[8];
+                pad->pressure_white = rdata[9];
+
                 //Map the left and right triggers
                 pad->bLeftTrigger = rdata[10];
                 pad->bRightTrigger = rdata[11];
