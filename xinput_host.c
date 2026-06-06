@@ -524,7 +524,7 @@ bool xinputh_init(void)
     return true;
 }
 
-bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const *desc_itf, uint16_t max_len)
+uint16_t xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const *desc_itf, uint16_t max_len)
 {
     TU_VERIFY(dev_addr <= CFG_TUH_DEVICE_MAX);
 
@@ -626,11 +626,11 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
                         pos += tu_desc_len(p_desc);
                         p_desc = tu_desc_next(p_desc);
                     }
-                    return true;  // Claim the interface but don't create new instance
+                    return (uint16_t)pos;  // Claim the interface but don't create new instance
                 }
             }
         }
-        return false;  // No wired gamepad found to attach to
+        return 0;  // No wired gamepad found to attach to
     }
 #endif
 
@@ -652,7 +652,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
     if (type == XINPUT_UNKNOWN)
     {
         TU_LOG2("XINPUT: Not a valid interface\n");
-        return false;
+        return 0;
     }
 
     printf("[XINPUT] Opening type=%d dev_addr=%d itf=%d\n", type, dev_addr, desc_itf->bInterfaceNumber);
@@ -660,7 +660,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
     // xinput_dev was already retrieved earlier in function
     if (!xinput_dev) {
         printf("[XINPUT] ERROR: get_dev returned NULL\n");
-        return false;
+        return 0;
     }
 
     printf("[XINPUT] inst_count=%d max=%d\n", xinput_dev->inst_count, CFG_TUH_XINPUT);
@@ -669,7 +669,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
     xinputh_interface_t *xid_itf = get_instance(dev_addr, xinput_dev->inst_count);
     if (!xid_itf) {
         printf("[XINPUT] ERROR: get_instance returned NULL\n");
-        return false;
+        return 0;
     }
     xid_itf->itf_num = desc_itf->bInterfaceNumber;
     xid_itf->type = type;
@@ -705,7 +705,7 @@ bool xinputh_open(uint8_t rhport, uint8_t dev_addr, tusb_desc_interface_t const 
     }
 
     xinput_dev->inst_count++;
-    return true;
+    return (uint16_t)pos;
 }
 
 bool xinputh_set_config(uint8_t dev_addr, uint8_t itf_num)
